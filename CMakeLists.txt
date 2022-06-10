@@ -6,6 +6,7 @@ project(
 	LANGUAGES CXX
 )
 
+option(ENABLE_TESTS "Enable Unit Tests using Catch2" OFF)
 
 if(MSVC)
 	add_compile_options(/W4)
@@ -29,3 +30,7 @@ src/vectorfont/hershey.cpp
 # when other libraries or executables link to vectorfont
 target_include_directories (${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+if(ENABLE_TESTS)
+	enable_testing()
+	add_subdirectory(src/tests)
+endif()
