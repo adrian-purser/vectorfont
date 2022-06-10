@@ -18,6 +18,7 @@
 #include <optional>
 #include <algorithm>
 #include <functional>
+#include <span>
 #include "rectangle.h"
 
 namespace vectorfont
@@ -83,8 +84,8 @@ struct Font
 	inline void																	moveto(int16_t x, int16_t y);	
 	inline void																	lineto(int16_t x, int16_t y, int linecap = vectorfont::cap::ROUND);
 
-	template<typename T>	void									execute(const T& string, std::function<bool(vectorfont::Primitive,const int16_t *)> callback) const;
-	inline void																	execute(uint32_t code, std::function<bool(vectorfont::Primitive,const int16_t *)> callback) const;
+	template<typename T>	void									execute(const T& string, std::function<bool(vectorfont::Primitive,std::span<const int16_t>)> callback) const;
+	inline void																	execute(uint32_t code, std::function<bool(vectorfont::Primitive,std::span<const int16_t>)> callback) const;
 
 	template<typename T>	vectorfont::Rect			string_rect(const T& string) const;
 };
@@ -149,14 +150,14 @@ void Font::lineto(int16_t x, int16_t y, int linecap)
 
 template<typename T>
 void
-Font::execute(const T & string, std::function<bool(vectorfont::Primitive,const int16_t *)> callback) const
+Font::execute(const T & string, std::function<bool(vectorfont::Primitive,std::span<const int16_t>)> callback) const
 {
 	for(uint32_t code : string)
 		execute(code,callback);
 }
 
 void
-Font::execute(uint32_t code, std::function<bool(vectorfont::Primitive,const int16_t *)> callback) const
+Font::execute(uint32_t code, std::function<bool(vectorfont::Primitive,std::span<const int16_t>)> callback) const
 {
 	const auto p_glyph = get_glyph(code);
 	if(p_glyph != nullptr)
@@ -165,18 +166,19 @@ Font::execute(uint32_t code, std::function<bool(vectorfont::Primitive,const int1
 
 		while(glyph.primitive_count-- > 0)
 		{
-			if(callback(primitives[glyph.primitive_index],&parameters[glyph.parameter_index]))
-				break; 
+			size_t pcount=1;
 			switch(primitives[glyph.primitive_index++].command)
 			{
-				case vectorfont::command::MOVETO : glyph.parameter_index += 2; break;
-				case vectorfont::command::LINETO : glyph.parameter_index += 2; break;
+				case vectorfont::command::MOVETO : pcount=2; glyph.parameter_index += 2; break;
+				case vectorfont::command::LINETO : pcount=2; glyph.parameter_index += 2; break;
 			}
+			if(callback( primitives[glyph.primitive_index], {&parameters[glyph.parameter_index],pcount} ))
+				break;
 		}
-		callback({vectorfont::command::ADVANCE},&glyph.advance_x);
+		callback({vectorfont::command::ADVANCE},{&glyph.advance_x,1});
 	}
 	else
-		callback({vectorfont::command::ADVANCE},&missing_adv_x);
+		callback({vectorfont::command::ADVANCE},{&missing_adv_x,1});
 }
 
 
