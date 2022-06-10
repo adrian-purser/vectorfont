@@ -30,16 +30,20 @@ int size	= 32;	// Font Size
 
 p_font->execute(
 	"Hello VectorFont",
-	[&](vectorfont::Primitive primitive,const int16_t * args)->bool
+	[&](vectorfont::Primitive primitive,std::span<const int16_t> args)->bool
 	{
 		switch(primitive.command)
 		{
 			case vectorfont::command::MOVETO :
-				cx = posx + ((size * args[0]) / font.units_per_em);
-				cy = posy - ((size * args[1]) / font.units_per_em);
+				if(args.size() >= 2)
+				{
+					cx = posx + ((size * args[0]) / font.units_per_em);
+					cy = posy - ((size * args[1]) / font.units_per_em);
+				}
 				break;
 
 			case vectorfont::command::LINETO :
+				if(args.size() >= 2)
 				{
 					auto fx = cx;
 					auto fy = cy;
@@ -50,7 +54,8 @@ p_font->execute(
 				break;
 
 			case vectorfont::command::ADVANCE :
-				posx = posx + ((size * args[0]) / font.units_per_em);
+				if(args.size() >= 1)
+					posx = posx + ((size * args[0]) / font.units_per_em);
 				break;
 		}
 		return false;	// return false to indicate that we don't want to stop being called back.
