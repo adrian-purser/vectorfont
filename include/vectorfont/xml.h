@@ -13,7 +13,7 @@
 //	CREATED:			06-NOV-2008 Adrian Purser <ade@adrianpurser.co.uk>
 //-----------------------------------------------------------------------------
 //	TODO :
-//
+//	* This is old code and due for a review.
 //	*	The 'Processing Instruction' ( <? ) parser works with well formed xml 
 //		but could fail, or even hang, with malformed xml.
 //

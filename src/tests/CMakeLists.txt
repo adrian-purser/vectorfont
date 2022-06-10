@@ -11,11 +11,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 set(TEST_SOURCES
-	test1.cpp
+	rectangle.cpp
 )
 
 add_executable(tests ${TEST_SOURCES})
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(tests PRIVATE Catch2::Catch2WithMain vectorfont)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(CTest)

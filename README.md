@@ -6,6 +6,8 @@
 
 #### Basic Usage
 
+##### Hershey Font Parsing
+
 Parse the font from either a string or a file into a vectorfont object.
 
 ```C++
@@ -15,4 +17,41 @@ std::unique_ptr<vectorfont::VectorFont> p_font = vectorfont::load_hershey_font("
 
 ```
 
+##### Using the vectorfont
+
+```C++
+int posx	= 0;	// Text Position x
+int posy 	= 0;	// and y
+int cx 		= 0;	// Cursor x
+int cy 		= 0;	// and y
+int size	= 32;	// Font Size
+
+p_font->execute(
+	"Hello VectorFont",
+	[&](vectorfont::Primitive primitive,const int16_t * args)->bool
+	{
+		switch(primitive.command)
+		{
+			case vectorfont::command::MOVETO :
+				cx = posx + ((size * args[0]) / font.units_per_em);
+				cy = posy - ((size * args[1]) / font.units_per_em);
+				break;
+
+			case vectorfont::command::LINETO :
+				{
+					auto fx = cx;
+					auto fy = cy;
+					cx = position.x + ((size * args[0]) / font.units_per_em);
+					cy = position.y - ((size * args[1]) / font.units_per_em);
+					line(fx,fy,cx,cy);
+				}
+				break;
+
+			case vectorfont::command::ADVANCE :
+				posx = posx + ((size * args[0]) / font.units_per_em);
+				break;
+		}
+		return false;	// return false to indicate that we don't want to stop being called back.
+	} );
+```
 
