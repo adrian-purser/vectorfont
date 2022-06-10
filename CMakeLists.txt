@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
-project(vectorfont VERSION 1.0.0 LANGUAGES CXX)
+project(
+	vectorfont 
+	VERSION 1.0.0 
+	DESCRIPTION "Utilities for parsing vector fonts"
+	LANGUAGES CXX
+)
 
 
 if(MSVC)
