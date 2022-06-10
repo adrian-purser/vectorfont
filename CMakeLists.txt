@@ -22,13 +22,14 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(cmake/StandardProjectSettings.cmake)
 include(cmake/StaticAnalyzers.cmake)
 
-add_library( vectorfont 
-src/vectorfont/hershey.cpp
-)
+add_library( 	vectorfont 
+							STATIC
+							src/vectorfont/hershey.cpp
+						)
 
 # Make sure the compiler can find include files for our library
 # when other libraries or executables link to vectorfont
-target_include_directories (vectorfont PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(vectorfont PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(ENABLE_TESTS)
 	enable_testing()
