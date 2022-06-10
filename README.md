@@ -1,4 +1,6 @@
 # VectorFont
+[![CMake](https://github.com/adrian-purser/vectorfont/actions/workflows/cmake.yml/badge.svg)](https://github.com/adrian-purser/vectorfont/actions/workflows/cmake.yml)
+
 
 #### Features
 
