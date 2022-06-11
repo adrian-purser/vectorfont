@@ -13,65 +13,116 @@
 #include <iterator>
 #include <array>
 #include <memory>
+#include <functional>
+#include <string_view>
 #include "vectorfont/hershey.h"
 #include "vectorfont/xml.h"
 
 namespace vectorfont
 {
 
+//=============================================================================
+//	tokenize
+//-----------------------------------------------------------------------------
+//	Extracts tokens from a string based upon the specified delimeters and quote
+//	marks. The tokens are returned through a callback.
+//	Returns the number of tokens found.
+//=============================================================================
+static 
+int
+tokenize(	const std::string_view & str,
+					std::function<bool(const std::string_view &)> callback,
+					std::string_view delimeters = ",",
+					std::string_view quotes = "\"'" )
+{
+	std::string_view::size_type index = 0;
+	bool b_finished = false;
+	int count = 0;
+
+	while(!b_finished && (index < str.size()))
+	{
+		const auto ch = str[index];
+
+		if((ch == ' ') || (ch == '\t'))
+		{
+			++index;
+			continue;
+		}
+
+		auto qpos = quotes.find_first_of(ch);
+		if(qpos != std::string_view::npos)
+		{
+			++index;
+			if(index < str.size())
+			{
+				const auto qepos = str.find_first_of(quotes[qpos],index);
+				if(qepos == std::string_view::npos)
+				{
+					b_finished = !callback(str.substr(index));
+					++count;
+					index = str.size();
+				}
+				else
+				{
+					b_finished = !callback(str.substr(index,qepos-index));
+					++count;
+					index = qepos+1;
+
+					const auto dpos = str.find_first_of(delimeters,index);
+					index = (dpos == std::string_view::npos ? str.size() : dpos + 1); 
+				}
+			}
+		}
+		else
+		{
+			const auto dpos = delimeters.find_first_of(ch);
+			if(dpos != std::string_view::npos)
+			{
+				b_finished = !callback(std::string_view());
+				++count;
+				index = dpos+1;
+			}
+			else
+			{
+				const auto depos = str.find_first_of(delimeters,index);
+				if(depos == std::string_view::npos)
+				{
+					b_finished = !callback(str.substr(index));
+					++count;
+					index = str.size();
+				}
+				else
+				{
+					b_finished = !callback(str.substr(index,depos-index));
+					++count;
+					index = depos+1;
+				}
+			}
+		}
+	}
+
+	return count;
+}
+
+
 static int
 parse_svg_path_data(const std::string_view src, std::function<bool (char,const std::array<int,8> &, int argc)> callback)
 {
-
 	std::array<int,8>	args;
 	char 							command = 0;
 	int 							argc = 0;
 	int								argi = 0;
-	int								argstart = -1;
 	bool							b_error = false;
 	bool 							b_finished = false;
 
-//	std::cout << "Parsing : " << src << std::endl;
-
-	for(std::string::size_type i=0;(i<=src.size()) && !b_error && !b_finished;++i)
-	{
-		// Check whether we have arrived at a break point.
-		if( (i>=src.size()) || isalpha(src[i]) || (src[i] == ' ') || (src[i] == '\t') )
+	tokenize(src,[&](const std::string_view str)->bool
 		{
-			if((command != 0) && (argstart > 0))
-			{
-				auto str = src.substr(argstart,i-argstart);
-				
-				int arg;
-				if(auto [p, ec] = std::from_chars(str.data(),str.data() + str.size(), arg); ec == std::errc())
-				{
-					args[argi++] = arg;
-					if(argi >= argc)
-					{
-						b_finished = !callback(command,args,argi);
+			if(str.empty())
+				return true;
 
-//						std::cout << "  callback: " << command << ' ';
-//						for(int ai=0;ai<argi;++ai)
-//							std::cout << args[ai] << ' ';
-//						std::cout << std::endl;
-						argi = 0;
-					}
-				}
-				else
-				{
-					std::cerr << "Failed to parse argument '" << src.substr(argstart,i-argstart) << "'\n";
-					b_error = true;
-					break;
-				}
-				argstart = -1;
-			}
-		}
-
-		if(i<src.size())
-		{
-			if(isalpha(src[i]))
+			if(command == 0)
 			{
-				command = src[i];
+				command = str[0];
 
 				switch(command)
 				{
@@ -80,6 +131,7 @@ parse_svg_path_data(const std::string_view src, std::function<bool (char,const s
 					case 'm' :
 					case 'l' :
 						argc = 2;
+						argi = 0;
 						break;
 
 					default :
@@ -87,19 +139,32 @@ parse_svg_path_data(const std::string_view src, std::function<bool (char,const s
 						command = 0;
 						break;
 				}
-
-				argstart = -1;
 			}
-			else if((command != 0) && (src[i] != ' ') && (src[i] != '\t'))
+			else
 			{
-				if(argstart < 0)
-					argstart  = i;
+				int arg;
+				if(auto [p, ec] = std::from_chars(str.data(),str.data() + str.size(), arg); ec == std::errc())
+				{
+					args[argi++] = arg;
+					if(argi >= argc)
+					{
+						b_finished = !callback(command,args,argi);
+						command = 0;
+					}
+				}
+				else
+				{
+					std::cerr << "Failed to parse argument '" << str << "'\n";
+					b_error = true;
+				}
 			}
-		}
-	
-	}
-	return 0;
+
+			return !b_error && !b_finished;
+		}, " \t");
+
+		return b_error ? -1 : 0;
 }
+
 
 static bool
 parse_glyph(const ade::xml::XMLElement & glyph_element, vectorfont::Font & font)
@@ -127,20 +192,25 @@ parse_glyph(const ade::xml::XMLElement & glyph_element, vectorfont::Font & font)
 
 		parse_svg_path_data(attr, [&](char command,const std::array<int,8> & args,int argc) -> bool
 			{
-				if(argc < 2)
+				switch(argc)
 				{
-					std::cerr << "Missing args in SVG path command '" << command << "'\n";
-					b_error = true;
-					return false;
-				}
+					case 2 :
+						switch(command)
+						{
+							case 'M' : cursor_x = args[0]; cursor_y = args[1]; 		font.moveto(cursor_x,cursor_y); break;
+							case 'L' : cursor_x = args[0]; cursor_y = args[1]; 		font.lineto(cursor_x,cursor_y); break;
+							case 'm' : cursor_x += args[0]; cursor_y += args[1]; 	font.moveto(cursor_x,cursor_y); break;
+							case 'l' : cursor_x += args[0]; cursor_y += args[1]; 	font.lineto(cursor_x,cursor_y); break;
+							default : 	
+								//std::cerr << "Unsupported command '" << command << "'\n"; 
+								//b_error = true; 
+								return false;
+						}
+						break;
 
-				switch(command)
-				{
-					case 'M' : cursor_x = args[0]; cursor_y = args[1]; 		font.moveto(cursor_x,cursor_y); break;
-					case 'L' : cursor_x = args[0]; cursor_y = args[1]; 		font.lineto(cursor_x,cursor_y); break;
-					case 'm' : cursor_x += args[0]; cursor_y += args[1]; 	font.moveto(cursor_x,cursor_y); break;
-					case 'l' : cursor_x += args[0]; cursor_y += args[1]; 	font.lineto(cursor_x,cursor_y); break;
-					default : 	std::cerr << "Unsupported command '" << command << "'\n"; b_error = true; return false;
+					default :
+						//std::cerr << "Unsupported command '" << command << "'\n";
+						break;
 				}
 				return true;
 			});
@@ -184,14 +254,14 @@ parse_font_element(const ade::xml::XMLElement & font_element)
 			return b_error;
 		});
 
-
+/*
 	std::cout 	<< "\nFONT: id: " << font.id 
 							<< "\n    ascent:          " << font.ascent
 							<< "\n    descent:         " << font.descent
 							<< "\n    units-per-em:    " << font.units_per_em
 							<< "\n    missing-adv-x:   " << font.missing_adv_x
 							<< std::endl;
-
+*/
 	if(b_error)
 		return nullptr;
 
@@ -257,6 +327,7 @@ load_hershey_font(std::string_view filename)
 
 	return parse_hershey_font(str);
 }
+
 
 } // namespace vectorfont
 
