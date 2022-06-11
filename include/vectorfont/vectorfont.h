@@ -166,13 +166,15 @@ Font::execute(uint32_t code, std::function<bool(vectorfont::Primitive,std::span<
 
 		while(glyph.primitive_count-- > 0)
 		{
-			size_t pcount=1;
-			switch(primitives[glyph.primitive_index++].command)
+			size_t pcount=0;
+			const auto & primitive 	= primitives[glyph.primitive_index++];
+			const auto & param			= parameters[glyph.parameter_index];
+			switch(primitive.command)
 			{
 				case vectorfont::command::MOVETO : pcount=2; glyph.parameter_index += 2; break;
 				case vectorfont::command::LINETO : pcount=2; glyph.parameter_index += 2; break;
 			}
-			if(callback( primitives[glyph.primitive_index], {&parameters[glyph.parameter_index],pcount} ))
+			if(callback( primitive, {&param,pcount} ))
 				break;
 		}
 		callback({vectorfont::command::ADVANCE},{&glyph.advance_x,1});
