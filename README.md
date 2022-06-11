@@ -1,10 +1,13 @@
 # VectorFont
 [![CMake](https://github.com/adrian-purser/vectorfont/actions/workflows/cmake.yml/badge.svg)](https://github.com/adrian-purser/vectorfont/actions/workflows/cmake.yml)
 
+Load/Parse SVG Hershey font files. This is not intended to be a complete SVG library, quite the opposite. It is intended to be a small piece of code to simply parse these specific files. Currently, only the MOVETO and LINETO primitives are supported.
+
+My intention is to add new formats as and when I need them.
 
 #### Features
 
- - Parses hershey fonts.
+ - Parses SVG hershey fonts.
 
 #### Basic Usage
 
