@@ -79,7 +79,6 @@ struct Font
 	int16_t																			width() const noexcept 			{return rect.width();}
 	int16_t																			height() const noexcept 		{return rect.height();}
 	inline const vectorfont::Glyph *				 		get_glyph(uint32_t code) const;
-	inline void 																update_size(int16_t x,int16_t y) noexcept;
 	inline void																	start_glyph(uint32_t code, int16_t advance_x);
 	inline void																	moveto(int16_t x, int16_t y);	
 	inline void																	lineto(int16_t x, int16_t y, int linecap = vectorfont::cap::ROUND);
