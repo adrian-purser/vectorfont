@@ -6,21 +6,13 @@ project(
 	LANGUAGES CXX
 )
 
-option(ENABLE_TESTS "Enable Unit Tests using Catch2" OFF)
+option(ENABLE_VECTORFONT_TESTS "Enable Unit Tests for vectorfont" OFF)
 
 if(MSVC)
 	add_compile_options(/W4)
 else()
 	add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-include(cmake/StandardProjectSettings.cmake)
-include(cmake/StaticAnalyzers.cmake)
 
 add_library( 	vectorfont 
 							STATIC
@@ -30,8 +22,9 @@ add_library( 	vectorfont
 # Make sure the compiler can find include files for our library
 # when other libraries or executables link to vectorfont
 target_include_directories(vectorfont PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(vectorfont PUBLIC cxx_std_20)
 
-if(ENABLE_TESTS)
+if(ENABLE_VECTORFONT_TESTS)
 	enable_testing()
 	add_subdirectory(src/tests)
 endif()
